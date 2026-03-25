@@ -173,7 +173,10 @@ export default function DashboardPage() {
     }
   }
 
-  if (loading) return <div className="flex h-screen items-center justify-center bg-zinc-50"><Loader2 className="animate-spin text-blue-600" /></div>
+  if (loading) {
+    return <div>Loading... (If you see this, Supabase is the bottleneck)</div>
+  }
+
 
   return (
     <div className="flex min-h-screen bg-background">
