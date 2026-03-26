@@ -1,5 +1,5 @@
 'use client'
-
+import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { supabase } from '../lib/supabase'
 import Image from 'next/image'
@@ -11,6 +11,7 @@ export function AuthView() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [successMsg, setSuccessMsg] = useState<string | null>(null)
+  const router = useRouter()
 
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -21,11 +22,16 @@ export function AuthView() {
     try {
       if (isSignUp) {
         // Sign Up Logic
-        const { error } = await supabase.auth.signUp({
+        const { error, data } = await supabase.auth.signUp({
           email,
           password,
         })
         if (error) throw error
+
+        // If you turned OFF email confirmation in Supabase, push them straight in:
+        // router.push('/')
+
+        // (If you kept email confirmation ON, leave the success message and DON'T push)
         setSuccessMsg("Welcome to Navodaya Connect! Please check your email to verify your account.")
       } else {
         // Sign In Logic
@@ -34,8 +40,26 @@ export function AuthView() {
           password,
         })
         if (error) throw error
-        // On success, Next.js will auto-redirect based on our layout.tsx logic
+        // SUCCESS! Take them to the dashboard
+        router.push('/')
       }
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Google OAuth Handler
+  const handleGoogleAuth = async () => {
+    setLoading(true)
+    setError(null)
+    setSuccessMsg(null)
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({ provider: 'google' })
+      if (error) throw error
+      // OAuth is usually redirect-based, but in case of popup, push after successful login.
+      router.push('/')
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -77,8 +101,9 @@ export function AuthView() {
 
         {/* Google Auth Button */}
         <button 
-          onClick={() => supabase.auth.signInWithOAuth({ provider: 'google' })}
+          onClick={handleGoogleAuth}
           className="w-full flex items-center justify-center gap-3 rounded-xl border border-zinc-200 bg-white py-3 font-medium text-zinc-700 transition-all hover:bg-zinc-50 active:scale-[0.98] shadow-sm mb-6"
+          disabled={loading}
         >
           <svg className="w-5 h-5" viewBox="0 0 48 48">
             <g>

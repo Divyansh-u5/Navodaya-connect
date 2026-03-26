@@ -3,9 +3,15 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabase'; 
 
+// Add this interface
+interface OnboardingWizardProps {
+  onComplete: () => void;
+}
+
 type Role = 'student' | 'alumni' | 'teacher' | 'admin'
 
-export function OnboardingWizard() {
+// Accept onComplete via props!
+export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
   const [step, setStep] = useState<1 | 2>(1)
   const [selectedRole, setSelectedRole] = useState<Role | null>(null)
   
@@ -29,6 +35,7 @@ export function OnboardingWizard() {
     if (selectedRole) setStep(2)
   }
 
+  // Call onComplete on successful finish!
   const handleSubmit = async () => {
     // 🔴 ADDED: Require fullName before submitting
     if (formData.fullName && formData.branch && formData.dob && formData.house) {
@@ -53,7 +60,7 @@ export function OnboardingWizard() {
           });
 
         if (upsertError) throw upsertError;
-        window.location.reload();
+        onComplete(); // 🚀 Trigger the onComplete function prop here!
 
       } catch (err: any) {
         console.error("Database Error:", err);

@@ -5,9 +5,10 @@ import { Sidebar } from '../components/sidebar'
 import { supabase } from '../lib/supabase'
 import { Heart, MessageCircle, Image as ImageIcon, Send, Loader2, X } from 'lucide-react'
 import Link from 'next/link'
+import { OnboardingWizard } from '../components/onboarding-wizard' // <--- IMPORT MODAL
 
 export default function DashboardPage() {
-  const router = useRouter(); // <-- initialize the router
+  const router = useRouter();
 
   const [currentUser, setCurrentUser] = useState<any>(null)
   const [posts, setPosts] = useState<any[]>([])
@@ -20,6 +21,9 @@ export default function DashboardPage() {
 
   const [activeCommentPostId, setActiveCommentPostId] = useState<string | null>(null)
   const [commentText, setCommentText] = useState('')
+
+  // Add onboarding state!
+  const [needsOnboarding, setNeedsOnboarding] = useState(false)
 
   const fetchFeed = async (user: any) => {
     try {
@@ -73,11 +77,23 @@ export default function DashboardPage() {
       // THE BOUNCER
       if (!session) {
         console.log("No session found. Redirecting to login...");
-        router.push('/login'); // ⚠️ IMPORTANT: If your login page is named '/signin', change this!
+        router.push('/login');
         return; 
       }
 
-      // If they ARE logged in, let them stay and set the data
+      // Check their profile for onboarding needs
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('id, full_name, avatar_url, jnv_branch')
+        .eq('id', session.user.id)
+        .single();
+
+      // Heuristic to determine if onboarding is needed
+      // Adjust conditions as appropriate for your logic/fields!
+      if (!profile || !profile.full_name || !profile.jnv_branch) {
+        setNeedsOnboarding(true)
+      }
+
       setCurrentUser(session.user);
       fetchFeed(session.user);
       setLoading(false);
@@ -187,9 +203,24 @@ export default function DashboardPage() {
   }
 
   if (loading) {
-    return <div>Loading... (If you see this, Supabase is the bottleneck)</div>
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-zinc-50">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-10 w-10 animate-spin text-blue-600" />
+          <p className="text-sm font-medium text-zinc-500 animate-pulse">Loading your network...</p>
+        </div>
+      </div>
+    )
   }
-
+  // Show onboarding modal if needed
+  if (needsOnboarding) {
+    return (
+      <OnboardingWizard
+        onComplete={() => setNeedsOnboarding(false)}
+        // You may pass other props as you require!
+      />
+    )
+  }
 
   return (
     <div className="flex min-h-screen bg-background">
