@@ -3,19 +3,15 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabase'; 
 
-// Add this interface
 interface OnboardingWizardProps {
   onComplete: () => void;
 }
 
 type Role = 'student' | 'alumni' | 'teacher' | 'admin'
 
-// Accept onComplete via props!
 export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
   const [step, setStep] = useState<1 | 2>(1)
   const [selectedRole, setSelectedRole] = useState<Role | null>(null)
-  
-  // 🔴 ADDED: fullName to the state
   const [formData, setFormData] = useState({
     fullName: '',
     branch: '',
@@ -23,7 +19,6 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
     house: '',
     passoutYear: '',
   })
-  
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
 
@@ -35,23 +30,23 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
     if (selectedRole) setStep(2)
   }
 
-  // Call onComplete on successful finish!
+  // The save function with explicit upsert and id key!
   const handleSubmit = async () => {
-    // 🔴 ADDED: Require fullName before submitting
     if (formData.fullName && formData.branch && formData.dob && formData.house) {
       setIsSubmitting(true);
       setErrorMsg('');
-      
+
       try {
         const { data: { user }, error: userError } = await supabase.auth.getUser();
         if (userError || !user) throw new Error("Authentication error. Please log in again.");
 
+        // ✅ The FIX: Always use .upsert() and include the user's id!
         const { error: upsertError } = await supabase
           .from('profiles')
           .upsert({
-            id: user.id,
+            id: user.id, // <-- THE MAGIC KEY
             role: selectedRole,
-            full_name: formData.fullName, // 🔴 ADDED: Saving the name to Supabase
+            full_name: formData.fullName,
             jnv_branch: formData.branch,
             dob: formData.dob,
             house: formData.house,
@@ -60,7 +55,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
           });
 
         if (upsertError) throw upsertError;
-        onComplete(); // 🚀 Trigger the onComplete function prop here!
+        onComplete();
 
       } catch (err: any) {
         console.error("Database Error:", err);
