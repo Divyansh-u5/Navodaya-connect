@@ -64,15 +64,28 @@ export default function DashboardPage() {
   }
 
   useEffect(() => {
-    async function init() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        setCurrentUser(user)
-        fetchFeed(user)
+    const checkUser = async () => {
+      // We are adding these console.logs!
+      console.log("🟢 1. Starting Supabase Auth Check");
+      console.log("🔑 2. URL exists?", !!process.env.NEXT_PUBLIC_SUPABASE_URL);
+
+      const { data: { session }, error } = await supabase.auth.getSession();
+
+      console.log("🔵 3. Supabase responded!", session ? "User Found" : "No User");
+      if (error) console.log("🔴 4. Error from Supabase:", error);
+
+      if (session && session.user) {
+        setCurrentUser(session.user)
+        fetchFeed(session.user)
+      } else {
+        setCurrentUser(null);
       }
-    }
-    init()
-  }, [])
+
+      setLoading(false); // <--- This is the command that makes the spinner disappear
+    };
+
+    checkUser();
+  }, []);
 
   const handleMediaSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
