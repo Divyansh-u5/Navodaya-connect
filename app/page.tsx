@@ -1,5 +1,5 @@
 'use client'
-
+import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { Sidebar } from '../components/sidebar'
 import { supabase } from '../lib/supabase'
@@ -7,6 +7,8 @@ import { Heart, MessageCircle, Image as ImageIcon, Send, Loader2, X } from 'luci
 import Link from 'next/link'
 
 export default function DashboardPage() {
+  const router = useRouter(); // <-- initialize the router
+
   const [currentUser, setCurrentUser] = useState<any>(null)
   const [posts, setPosts] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -64,28 +66,26 @@ export default function DashboardPage() {
   }
 
   useEffect(() => {
-    const checkUser = async () => {
-      // We are adding these console.logs!
-      console.log("🟢 1. Starting Supabase Auth Check");
-      console.log("🔑 2. URL exists?", !!process.env.NEXT_PUBLIC_SUPABASE_URL);
 
+    const checkUser = async () => {
       const { data: { session }, error } = await supabase.auth.getSession();
 
-      console.log("🔵 3. Supabase responded!", session ? "User Found" : "No User");
-      if (error) console.log("🔴 4. Error from Supabase:", error);
-
-      if (session && session.user) {
-        setCurrentUser(session.user)
-        fetchFeed(session.user)
-      } else {
-        setCurrentUser(null);
+      // THE BOUNCER
+      if (!session) {
+        console.log("No session found. Redirecting to login...");
+        router.push('/login'); // ⚠️ IMPORTANT: If your login page is named '/signin', change this!
+        return; 
       }
 
-      setLoading(false); // <--- This is the command that makes the spinner disappear
+      // If they ARE logged in, let them stay and set the data
+      setCurrentUser(session.user);
+      fetchFeed(session.user);
+      setLoading(false);
     };
 
     checkUser();
-  }, []);
+
+  }, [router]);
 
   const handleMediaSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
