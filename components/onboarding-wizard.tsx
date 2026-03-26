@@ -30,39 +30,35 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
     if (selectedRole) setStep(2)
   }
 
-  // The save function with explicit upsert and id key!
-  const handleSubmit = async () => {
-    if (formData.fullName && formData.branch && formData.dob && formData.house) {
-      setIsSubmitting(true);
-      setErrorMsg('');
+  const handleCompleteProfile = async () => {
+    try {
+      // 1. Get the securely logged-in user's ID
+      const { data: { session } } = await supabase.auth.getSession();
 
-      try {
-        const { data: { user }, error: userError } = await supabase.auth.getUser();
-        if (userError || !user) throw new Error("Authentication error. Please log in again.");
-
-        // ✅ The FIX: Always use .upsert() and include the user's id!
-        const { error: upsertError } = await supabase
-          .from('profiles')
-          .upsert({
-            id: user.id, // <-- THE MAGIC KEY
-            role: selectedRole,
-            full_name: formData.fullName,
-            jnv_branch: formData.branch,
-            dob: formData.dob,
-            house: formData.house,
-            batch_year: formData.passoutYear || null,
-            onboarding_completed: true
-          });
-
-        if (upsertError) throw upsertError;
-        onComplete();
-
-      } catch (err: any) {
-        console.error("Database Error:", err);
-        setErrorMsg(err.message || "Failed to save profile.");
-      } finally {
-        setIsSubmitting(false);
+      if (!session) {
+        alert("Session lost. Please log in again.");
+        return;
       }
+
+      // 2. Extract their Google image (if they used Google)
+      const googleImage = session.user.user_metadata?.avatar_url || null;
+
+      // 3. Save everything to the profiles table
+      const { error } = await supabase.from('profiles').upsert({
+        id: session.user.id,               // 🔑 CRITICAL: This links the profile to the user
+        full_name: formData.fullName,      // (Match to state variable for name)
+        jnv_branch: formData.branch,       // (Match to state variable for branch)
+        avatar_url: googleImage 
+      });
+
+      if (error) throw error;
+
+      // 4. Close the Wizard and reveal the Dashboard!
+      onComplete(); 
+
+    } catch (error: any) {
+      console.error("Error saving profile:", error.message);
+      alert("Failed to save profile. Please try again.");
     }
   }
 
@@ -219,7 +215,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                 Back
               </button>
               <button
-                onClick={handleSubmit}
+                onClick={handleCompleteProfile}
                 disabled={!formData.fullName || !formData.branch || !formData.dob || !formData.house || isSubmitting}
                 className="flex-[2] rounded-lg bg-blue-600 py-3 font-medium text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-700 transition-all flex justify-center items-center"
               >
