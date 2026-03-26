@@ -1,4 +1,5 @@
 'use client'
+
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { supabase } from '../lib/supabase'
@@ -28,11 +29,8 @@ export function AuthView() {
         })
         if (error) throw error
 
-        // If you turned OFF email confirmation in Supabase, push them straight in:
-        // router.push('/')
-
-        // (If you kept email confirmation ON, leave the success message and DON'T push)
-        setSuccessMsg("Welcome to Navodaya Connect! Please check your email to verify your account.")
+        // 🚀 FORCE REDIRECT: Since email confirm is off, take them straight to the app!
+        window.location.href = '/'
       } else {
         // Sign In Logic
         const { error } = await supabase.auth.signInWithPassword({
@@ -40,8 +38,9 @@ export function AuthView() {
           password,
         })
         if (error) throw error
-        // SUCCESS! Take them to the dashboard
-        router.push('/')
+        
+        // 🚀 FORCE REDIRECT: Take them to the dashboard
+        window.location.href = '/'
       }
     } catch (err: any) {
       setError(err.message)
@@ -58,8 +57,7 @@ export function AuthView() {
     try {
       const { error } = await supabase.auth.signInWithOAuth({ provider: 'google' })
       if (error) throw error
-      // OAuth is usually redirect-based, but in case of popup, push after successful login.
-      router.push('/')
+      window.location.href = '/'
     } catch (err: any) {
       setError(err.message)
     } finally {

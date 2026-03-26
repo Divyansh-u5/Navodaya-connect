@@ -1,11 +1,12 @@
 'use client'
+
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { Sidebar } from '../components/sidebar'
 import { supabase } from '../lib/supabase'
 import { Heart, MessageCircle, Image as ImageIcon, Send, Loader2, X } from 'lucide-react'
 import Link from 'next/link'
-import { OnboardingWizard } from '../components/onboarding-wizard' // <--- IMPORT MODAL
+import { OnboardingWizard } from '../components/onboarding-wizard'
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -22,7 +23,6 @@ export default function DashboardPage() {
   const [activeCommentPostId, setActiveCommentPostId] = useState<string | null>(null)
   const [commentText, setCommentText] = useState('')
 
-  // Add onboarding state!
   const [needsOnboarding, setNeedsOnboarding] = useState(false)
 
   const fetchFeed = async (user: any) => {
@@ -33,8 +33,14 @@ export default function DashboardPage() {
         .order('created_at', { ascending: false })
       if (postsError) throw postsError
 
-      const postIds = postsData?.map((p: any) => p.id) || []
-      const authorIds = [...new Set(postsData?.map((p: any) => p.user_id) || [])]
+      // 🛡️ THE SHIELD: If there are no posts, stop here so we don't crash!
+      if (!postsData || postsData.length === 0) {
+        setPosts([])
+        return
+      }
+
+      const postIds = postsData.map((p: any) => p.id)
+      const authorIds = [...new Set(postsData.map((p: any) => p.user_id))]
 
       const [profilesRes, likesRes, commentsRes] = await Promise.all([
         supabase.from('profiles').select('id, full_name, avatar_url, jnv_branch').in('id', authorIds),
@@ -43,12 +49,17 @@ export default function DashboardPage() {
       ])
 
       const commenterIds = [...new Set(commentsRes.data?.map((c: any) => c.user_id) || [])]
-      const { data: commenterProfiles } = await supabase
-        .from('profiles')
-        .select('id, full_name, avatar_url')
-        .in('id', commenterIds)
+      
+      let commenterProfiles: any[] = []
+      if (commenterIds.length > 0) {
+        const { data } = await supabase
+          .from('profiles')
+          .select('id, full_name, avatar_url')
+          .in('id', commenterIds)
+        commenterProfiles = data || []
+      }
 
-      const enrichedPosts = postsData?.map((post: any) => {
+      const enrichedPosts = postsData.map((post: any) => {
         const author = profilesRes.data?.find((p: any) => p.id === post.user_id)
         const postLikes = likesRes.data?.filter((l: any) => l.post_id === post.id) || []
         const hasLiked = postLikes.some((l: any) => l.user_id === user.id)
@@ -70,39 +81,33 @@ export default function DashboardPage() {
   }
 
   useEffect(() => {
-
     const checkUser = async () => {
       const { data: { session }, error } = await supabase.auth.getSession();
 
-      // THE BOUNCER
       if (!session) {
         console.log("No session found. Redirecting to login...");
         router.push('/login');
         return; 
       }
 
-      // Check their profile for onboarding needs
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('id, full_name, avatar_url, jnv_branch')
         .eq('id', session.user.id)
         .single();
 
-      // Heuristic to determine if onboarding is needed
-      // Adjust conditions as appropriate for your logic/fields!
       if (!profile || !profile.full_name || !profile.jnv_branch) {
         setNeedsOnboarding(true)
       }
 
       setCurrentUser(session.user);
       fetchFeed(session.user);
-      setLoading(false);
     };
 
     checkUser();
-
   }, [router]);
 
+  // ... (Keep handleMediaSelect, handleCreatePost, toggleLike, submitComment exactly as you had them)
   const handleMediaSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
@@ -160,7 +165,6 @@ export default function DashboardPage() {
       } else {
         await supabase.from('likes').insert({ post_id: postId, user_id: currentUser.id })
         
-        // Send Notification
         if (currentUser.id !== postAuthorId) {
           await supabase.from('notifications').insert({
             user_id: postAuthorId,
@@ -185,7 +189,6 @@ export default function DashboardPage() {
         content: commentText
       })
       
-      // Send Notification
       if (currentUser.id !== postAuthorId) {
         await supabase.from('notifications').insert({
           user_id: postAuthorId,
@@ -212,12 +215,11 @@ export default function DashboardPage() {
       </div>
     )
   }
-  // Show onboarding modal if needed
+
   if (needsOnboarding) {
     return (
       <OnboardingWizard
         onComplete={() => setNeedsOnboarding(false)}
-        // You may pass other props as you require!
       />
     )
   }
@@ -233,7 +235,6 @@ export default function DashboardPage() {
             <p className="text-zinc-500 mt-1">See what your Navodaya network is up to.</p>
           </header>
 
-          {/* Create Post */}
           <div className="bg-white rounded-2xl p-6 border border-zinc-200 shadow-sm">
             <div className="flex gap-4">
               <div className="h-10 w-10 rounded-full bg-blue-100 flex-shrink-0 flex items-center justify-center font-bold text-blue-600 overflow-hidden">
@@ -280,7 +281,6 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Feed */}
           <div className="space-y-6">
             {posts.length === 0 ? (
               <div className="text-center py-20 bg-white rounded-2xl border border-zinc-200">
@@ -290,7 +290,6 @@ export default function DashboardPage() {
               posts.map((post) => (
                 <div key={post.id} className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">
                   
-                  {/* Clickable Author Header */}
                   <div className="p-6 flex items-center gap-3">
                     <Link href={`/profile/${post.user_id}`} className="h-12 w-12 rounded-full bg-blue-50 border border-zinc-100 flex items-center justify-center font-bold text-blue-600 overflow-hidden hover:ring-2 hover:ring-blue-500 transition-all cursor-pointer">
                       {post.author?.avatar_url ? <img src={post.author.avatar_url} className="h-full w-full object-cover" alt="" /> : post.author?.full_name?.charAt(0)}
