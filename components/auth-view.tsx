@@ -75,7 +75,7 @@ export function AuthView() {
         {/* Logo and Branding */}
         <div className="mb-6 flex flex-col items-center">
           <Image
-            src="/jnv-logo.png"
+            src="C:\Users\vghim\navodaya-connect-v2\public\jnv-logo.png.png"
             alt="Jawahar Navodaya Vidyalaya"
             width={80}
             height={80}
