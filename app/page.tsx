@@ -82,26 +82,35 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const checkUser = async () => {
-      const { data: { session }, error } = await supabase.auth.getSession();
 
-      if (!session) {
-        console.log("No session found. Redirecting to login...");
+      // 🛡️ UPGRADED BOUNCER: Ask the actual server if the user still exists!
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+      // If there is no user, OR the server says the user was deleted, kick to login!
+      if (!user || userError) {
+        console.log("No valid user found. Redirecting to login...");
+
+        // Wipe the fake local ghost ticket just to be safe
+        await supabase.auth.signOut(); 
+
         router.push('/login');
         return; 
       }
 
+      // Check their profile for onboarding needs
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('id, full_name, avatar_url, jnv_branch')
-        .eq('id', session.user.id)
+        .eq('id', user.id)
         .single();
 
       if (!profile || !profile.full_name || !profile.jnv_branch) {
         setNeedsOnboarding(true)
       }
 
-      setCurrentUser(session.user);
-      fetchFeed(session.user);
+      setCurrentUser(user);
+      fetchFeed(user);
+      setLoading(false);
     };
 
     checkUser();
@@ -227,7 +236,7 @@ export default function DashboardPage() {
   return (
     <div className="flex min-h-screen bg-background">
       <Sidebar />
-      <main className="flex-1 overflow-auto bg-zinc-50 py-8 px-4 sm:px-8">
+      <main className="flex-1 overflow-auto bg-zinc-50 pt-8 pb-24 px-4 sm:px-8 md:pb-8">
         <div className="max-w-3xl mx-auto space-y-8">
           
           <header>
