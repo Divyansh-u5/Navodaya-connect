@@ -55,9 +55,18 @@ export function AuthView() {
     setError(null)
     setSuccessMsg(null)
     try {
-      const { error } = await supabase.auth.signInWithOAuth({ provider: 'google' })
+      const redirectTo = window.location.origin
+
+      // Supabase returns an OAuth URL; we must redirect to it.
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo },
+      })
+
       if (error) throw error
-      window.location.href = '/'
+      if (!data?.url) throw new Error('OAuth URL was not returned by Supabase.')
+
+      window.location.href = data.url
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -75,7 +84,7 @@ export function AuthView() {
         {/* Logo and Branding */}
         <div className="mb-6 flex flex-col items-center">
           <Image
-            src="\public\jnv-logo.png.png"
+            src="/jnv-logo.png.png"
             alt="Jawahar Navodaya Vidyalaya"
             width={80}
             height={80}

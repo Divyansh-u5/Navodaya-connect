@@ -62,6 +62,47 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
     }
   }
 
+  // ===== INSERTED: handleFileUpload function =====
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // 1. Get the actual logged-in user from Supabase
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) {
+      alert("You must be logged in to verify.")
+      return
+    }
+
+    // 2. Convert the image
+    const reader = new FileReader()
+    reader.readAsDataURL(file)
+    
+    reader.onload = async () => {
+      const base64Image = reader.result
+
+      // 3. Send it to our backend route.ts
+        const response = await fetch('/api/verify-alumni', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          base64Image: base64Image,
+          userId: user.id // <-- Using the real Supabase user ID!
+        })
+      })
+
+      const data = await response.json()
+      
+      if (data.success) {
+        alert("✅ You are officially verified!")
+      } else {
+        alert("❌ Verification failed. Please upload a clearer image.")
+      }
+    }
+  }
+  // ================================================
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-background to-muted px-4 py-12">
       <div className="w-full max-w-2xl rounded-2xl bg-card p-8 shadow-xl border border-border bg-white relative">
@@ -197,6 +238,19 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                   value={formData.passoutYear}
                   onChange={(e) => handleInputChange('passoutYear', e.target.value)}
                   className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-3 text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                />
+              </div>
+            )}
+
+            {/* Alumni verification upload field */}
+            {selectedRole === 'alumni' && (
+              <div>
+                <label className="block mb-2 font-medium">Upload JNV Marksheet</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileUpload}
+                  className="border p-2 rounded"
                 />
               </div>
             )}

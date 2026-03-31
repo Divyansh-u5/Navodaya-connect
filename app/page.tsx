@@ -100,11 +100,12 @@ export default function DashboardPage() {
       // Check their profile for onboarding needs
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select('id, full_name, avatar_url, jnv_branch')
+        .select('id, full_name, avatar_url, jnv_branch, is_verified')
         .eq('id', user.id)
         .single();
 
-      if (!profile || !profile.full_name || !profile.jnv_branch) {
+      // Keep the alumni marksheet verification UI visible until they are verified.
+      if (!profile || !profile.full_name || !profile.jnv_branch || profile.is_verified !== true) {
         setNeedsOnboarding(true)
       }
 
