@@ -242,18 +242,24 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
               </div>
             )}
 
-            {/* Alumni verification upload field */}
+            {/* --- MARKSHEET UPLOAD UI --- */}
             {selectedRole === 'alumni' && (
-              <div>
-                <label className="block mb-2 font-medium">Upload JNV Marksheet</label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileUpload}
-                  className="border p-2 rounded"
+              <div className="mt-6 p-4 border-2 border-dashed border-blue-200 rounded-xl bg-blue-50/50">
+                <label className="block text-sm font-semibold text-zinc-800 mb-2">
+                  Verify Alumni Status (Upload Marksheet)
+                </label>
+                <p className="text-xs text-zinc-500 mb-4">
+                  Our AI will scan your document for JNV credentials. The image is never saved to our database.
+                </p>
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  onChange={handleFileUpload} 
+                  className="w-full text-sm text-zinc-600 file:mr-4 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 transition-all cursor-pointer"
                 />
               </div>
             )}
+            {/* --------------------------- */}
 
             {errorMsg && (
               <div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-100">
