@@ -150,9 +150,11 @@ export default function MessagesPage() {
         <div className="flex h-full w-full overflow-hidden bg-white">
           {/* Contacts list — hide on mobile when a chat is active */}
           <div
-            className={`${
-              activeChatId ? 'hidden md:flex' : 'flex'
-            } absolute inset-0 z-10 h-full w-full flex-col border-r border-zinc-200 bg-zinc-50 md:relative md:z-auto md:w-80`}
+            className={
+              activeChatId 
+                ? "hidden md:flex min-h-0 w-full md:w-80 flex-col border-r border-zinc-200 bg-zinc-50" 
+                : "flex min-h-0 w-full md:w-80 flex-col border-r border-zinc-200 bg-zinc-50"
+            }
           >
           <div className="border-b border-zinc-200 bg-white p-6">
             <h2 className="text-xl font-bold text-zinc-900">Messages</h2>
@@ -204,9 +206,11 @@ export default function MessagesPage() {
 
           {/* Chat — hide on mobile until a chat is opened */}
           <div
-            className={`${
-              !activeChatId ? 'hidden md:flex' : 'flex'
-            } absolute inset-0 z-20 h-full w-full flex-col bg-zinc-50 md:relative md:z-auto md:flex-1 min-h-0`}
+            className={
+              activeChatId 
+                ? "flex min-h-0 flex-1 flex-col bg-zinc-50" 
+                : "hidden md:flex min-h-0 flex-1 flex-col bg-zinc-50"
+            }
           >
           {selectedUser ? (
             <>
