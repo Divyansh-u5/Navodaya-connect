@@ -10,6 +10,8 @@ export default function MessagesPage() {
   const [users, setUsers] = useState<any[]>([])
   const [pendingRequests, setPendingRequests] = useState<any[]>([])
   const [selectedUser, setSelectedUser] = useState<any>(null)
+  /** Mobile: null = list view; set when a chat is open (desktop always shows both panels). */
+  const [activeChatId, setActiveChatId] = useState<string | null>(null)
   const [messages, setMessages] = useState<any[]>([])
   const [newMessage, setNewMessage] = useState('')
   const [loading, setLoading] = useState(true)
@@ -144,10 +146,15 @@ export default function MessagesPage() {
   return (
     <div className="flex h-screen bg-white">
       <Sidebar />
-      <main className="flex flex-1 overflow-hidden">
-        {/* Contacts Sidebar */}
-        <div className="w-80 border-r border-zinc-200 flex flex-col bg-zinc-50">
-          <div className="p-6 border-b border-zinc-200 bg-white">
+      <main className="flex min-h-0 flex-1 overflow-hidden">
+        <div className="flex h-full w-full overflow-hidden bg-white">
+          {/* Contacts list — hide on mobile when a chat is active */}
+          <div
+            className={`${
+              activeChatId ? 'hidden md:flex' : 'flex'
+            } min-h-0 w-full md:w-80 flex-col border-r border-zinc-200 bg-zinc-50`}
+          >
+          <div className="border-b border-zinc-200 bg-white p-6">
             <h2 className="text-xl font-bold text-zinc-900">Messages</h2>
           </div>
 
@@ -172,7 +179,10 @@ export default function MessagesPage() {
               users.map((user) => (
                 <button
                   key={user.id}
-                  onClick={() => setSelectedUser(user)}
+                  onClick={() => {
+                    setSelectedUser(user)
+                    setActiveChatId(user.id)
+                  }}
                   className={`w-full flex items-center gap-3 p-4 hover:bg-white transition-all border-b border-zinc-100 ${selectedUser?.id === user.id ? 'bg-white border-r-4 border-r-blue-600 shadow-sm' : ''}`}
                 >
                   <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold overflow-hidden">
@@ -192,12 +202,24 @@ export default function MessagesPage() {
           </div>
         </div>
 
-        {/* Chat Window */}
-        <div className="flex-1 flex flex-col bg-white">
+          {/* Chat — hide on mobile until a chat is opened */}
+          <div
+            className={`${
+              !activeChatId ? 'hidden md:flex' : 'flex'
+            } min-h-0 flex-1 flex-col bg-zinc-50`}
+          >
           {selectedUser ? (
             <>
-              <div className="p-4 border-b border-zinc-200 flex items-center gap-3 bg-white">
-                <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold overflow-hidden">
+              <div className="flex items-center gap-3 border-b border-zinc-200 bg-white p-4">
+                <button
+                  type="button"
+                  onClick={() => setActiveChatId(null)}
+                  className="rounded-full bg-zinc-100 p-2 text-sm font-bold md:hidden"
+                  aria-label="Back to conversations"
+                >
+                  ← Back
+                </button>
+                <div className="h-10 w-10 flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-blue-100 text-blue-700 font-bold">
                   {selectedUser.avatar_url ? (
                     <img src={selectedUser.avatar_url} className="h-full w-full object-cover" alt="" />
                   ) : (
@@ -207,7 +229,7 @@ export default function MessagesPage() {
                 <p className="font-bold text-zinc-900">{selectedUser.full_name}</p>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-zinc-50/30">
+              <div className="min-h-0 flex-1 space-y-4 overflow-y-auto bg-zinc-50/30 p-6">
                 {messages.map((msg, i) => (
                   <div key={i} className={`flex ${msg.sender_id === currentUser.id ? 'justify-end' : 'justify-start'}`}>
                     <div className={`max-w-[70%] px-4 py-2 rounded-2xl text-sm ${msg.sender_id === currentUser.id ? 'bg-blue-600 text-white rounded-br-none' : 'bg-white border border-zinc-200 text-zinc-800 rounded-bl-none shadow-sm'}`}>
@@ -218,7 +240,7 @@ export default function MessagesPage() {
                 <div ref={scrollRef} />
               </div>
 
-              <form onSubmit={sendMessage} className="p-4 border-t border-zinc-200 bg-white flex gap-3">
+              <form onSubmit={sendMessage} className="flex gap-3 border-t border-zinc-200 bg-white p-4">
                 <input
                   type="text"
                   placeholder="Type a message..."
@@ -232,13 +254,14 @@ export default function MessagesPage() {
               </form>
             </>
           ) : (
-            <div className="flex-1 flex flex-col items-center justify-center text-zinc-400">
-              <div className="w-16 h-16 bg-zinc-100 rounded-full flex items-center justify-center mb-4">
+            <div className="flex flex-1 flex-col items-center justify-center bg-white text-zinc-400 md:bg-zinc-50">
+              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-zinc-100">
                 <UserIcon size={32} />
               </div>
               <p className="text-sm font-medium">Select a connection to message</p>
             </div>
           )}
+        </div>
         </div>
       </main>
     </div>
